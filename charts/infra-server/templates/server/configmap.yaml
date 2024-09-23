@@ -8,16 +8,6 @@ data:
   infra.yaml: |
     version: 0.2
 {{- $config := deepCopy .Values.config }}
-{{- range $key, $value := .Values.config }}
-    {{- if and (kindIs "string" $value) (hasPrefix "env:" $value) }}
-        # Extract the environment variable name by trimming the `env:` prefix
-        {{- $envVarName := trimPrefix "env:" $value }}
-        {{ $key }}: {{ printf "$( %s )" $envVarName }}
-    {{- else }}
-        {{ $key }}: "{{ $value }}"
-    {{- end }}
-{{- end }}
-
 {{- range $key, $val := $config.addr }}
 {{- $_ := printf ":%.f" $val | set $config.addr $key }}
 {{- end }}
@@ -31,8 +21,21 @@ data:
 {{- $_ := set $config "dbPort" .Values.postgres.service.port }}
 {{- end }}
 
-{{- if not $config.dbEncryptionKey }}
+
+{{- if $config.dbEncryptionKey }}
+    {{- if hasPrefix "env:" $config.dbEncryptionKey -}}
+        {{- $envVarName := trimPrefix "env:" $config.dbEncryptionKey }}
+        {{- $_ := set $config "dbEncryptionKey" (printf "$( %s )" $envVarName) }}
+        {{- end }}
+    {{- else -}}
 {{- $_ := set $config "dbEncryptionKey" "/var/run/secrets/infrahq.com/encryption-key/key" }}
+{{- end }}
+
+{{- if $config.dbPassword }}
+    {{- if hasPrefix "env:" $config.dbPassword -}}
+        {{- $envVarName := trimPrefix "env:" $config.dbPassword }}
+        {{- $_ := set $config "dbPassword" (printf "$( %s )" $envVarName) }}
+        {{- end }}
 {{- end }}
 
 {{- if not .Values.config.tls }}
