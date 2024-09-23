@@ -7,14 +7,15 @@ metadata:
 data:
   infra.yaml: |
     version: 0.2
+{{- $config := deepCopy .Values.config }}
 {{- range $key, $value := .Values.config }}
-{{- if hasPrefix "env:" $value }}
-    # Extract the environment variable name by trimming the `env:` prefix
-    {{- $envVarName := trimPrefix "env:" $value }}
-    {{ $key }}: {{ printf "$( %s )" $envVarName }}
-{{- else }}
-    {{ $key }}: "{{ $value }}"
-{{- end }}
+    {{- if and (kindIs "string" $value) (hasPrefix "env:" $value) }}
+        # Extract the environment variable name by trimming the `env:` prefix
+        {{- $envVarName := trimPrefix "env:" $value }}
+        {{ $key }}: {{ printf "$( %s )" $envVarName }}
+    {{- else }}
+        {{ $key }}: "{{ $value }}"
+    {{- end }}
 {{- end }}
 
 {{- range $key, $val := $config.addr }}
